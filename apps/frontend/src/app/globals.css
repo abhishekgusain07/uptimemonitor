@@ -73,7 +73,37 @@
   * {
     @apply border-border outline-ring/50;
   }
+  
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 2rem;
+  }
+  
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Performance optimizations */
+  .animate-float,
+  .animate-fade-in-up,
+  .animate-pulse-glow {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+  }
+  
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-float,
+    .animate-fade-in-up,
+    .animate-pulse-glow,
+    .animate-gradient {
+      animation: none !important;
+    }
+    
+    * {
+      transition: none !important;
+    }
   }
 }
