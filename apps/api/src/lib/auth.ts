@@ -2,8 +2,19 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@uptime/database";
 import * as schema from "@uptime/database";
+import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
 
 export const auth = betterAuth({
+  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:4000",
+  trustedOrigins: [
+    "http://localhost:3000",
+    "http://localhost:4000",
+    // Add production domains here
+    // "https://yourdomain.com",
+    // "https://api.yourdomain.com"
+  ],
+  
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
@@ -18,17 +29,27 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
-    sendResetPassword: async ({ user, token, url }) => {
-      // TODO: Implement email sending for password reset
-      console.log(`Password reset for ${user.email}: ${url}`);
+    sendResetPassword: async ({ user, url }) => {
+      try {
+        await sendPasswordResetEmail({ user, url });
+      } catch (error) {
+        console.error("Failed to send password reset email:", error);
+        throw new Error("Failed to send password reset email");
+      }
     },
-    sendVerificationEmail: async ({ user, token, url }:{
-      user: any,
-      token: any, 
-      url: any
+    sendVerificationEmail: async ({ user, url }:{
+      user:{
+        email: string;
+        name: string
+      },
+      url: string
     }) => {
-      // TODO: Implement email sending for verification
-      console.log(`Email verification for ${user.email}: ${url}`);
+      try {
+        await sendVerificationEmail({ user, url });
+      } catch (error) {
+        console.error("Failed to send verification email:", error);
+        throw new Error("Failed to send verification email");
+      }
     },
   },
 
@@ -54,6 +75,12 @@ export const auth = betterAuth({
       enabled: true,
       maxAge: 60 * 5, // 5 minutes
     },
+    cookieOptions: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+    },
   },
 
   // Security configuration
@@ -67,7 +94,8 @@ export const auth = betterAuth({
   // Rate limiting
   rateLimit: {
     window: 60, // 1 minute
-    max: 100, // 100 requests per minute
+    max: 10, // 10 requests per minute for auth endpoints
+    storage: "memory", // Use memory storage for rate limiting
   },
 
   // Additional user fields from our schema

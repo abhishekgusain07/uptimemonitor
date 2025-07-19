@@ -11,30 +11,27 @@ export interface Context {
 }
 
 export const createContext = async (opts?: { req?: Request }): Promise<Context> => {
-  // Extract session from request headers
+  // Extract session from request headers using Better Auth's simpler approach
   let user: User | null = null;
   let session: Session | null = null;
 
   if (opts?.req) {
     try {
-      // Get session from Better Auth
-      const authRequest = new Request(opts.req.url, {
-        method: opts.req.method,
-        headers: opts.req.headers,
+      // Use Better Auth's session validation
+      const sessionData = await auth.api.getSession({
+        headers: Object.fromEntries(opts.req.headers.entries()),
       });
       
-      // Use Better Auth to get session from request
-      const sessionResult = await auth.api.getSession({
-        headers: authRequest.headers,
-      });
-      
-      if (sessionResult?.session) {
-        session = sessionResult.session;
-        user = sessionResult.user;
+      if (sessionData?.session && sessionData?.user) {
+        session = sessionData.session;
+        user = sessionData.user;
       }
     } catch (error) {
       // Session invalid or not found - continue with null user/session
-      console.warn('Failed to extract session:', error);
+      // Don't log in production to avoid noise
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Session validation failed:', error);
+      }
     }
   }
 

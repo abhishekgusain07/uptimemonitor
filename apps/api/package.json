@@ -17,6 +17,7 @@
     "better-auth": "^1.2.12",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "nodemailer": "^6.9.8",
     "superjson": "^2.2.2",
     "zod": "^4.0.5"
   },
@@ -27,6 +28,7 @@
     "@types/express": "^5.0.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
+    "@types/nodemailer": "^6.4.14",
     "@types/supertest": "^6.0.3",
     "jest": "^30.0.4",
     "supertest": "^7.1.3",

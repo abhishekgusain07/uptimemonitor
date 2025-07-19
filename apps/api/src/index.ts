@@ -4,6 +4,10 @@ import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from './routers/_app';
 import { createContext } from './trpc';
 import { auth } from './lib/auth';
+import { validateEnv } from './lib/env';
+
+// Validate environment variables at startup
+validateEnv();
 
 const app = express();
 const port = process.env.PORT || 4000;
