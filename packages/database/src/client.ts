@@ -1,7 +1,8 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as postgres from "postgres";
+import postgres from "postgres";
 import * as schema from "./schema";
-
+import { config } from "dotenv";
+config({path: ".env"})
 // Disable prefetch as it is not supported for "Transaction" pool mode
 const connectionString = process.env.DATABASE_URL;
 

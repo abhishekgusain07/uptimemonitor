@@ -5,21 +5,35 @@ import { auth } from './lib/auth';
 import type { Session, User } from './lib/auth';
 
 export interface Context {
-  req?: Request;
+  req?: any; // Express Request or Web API Request
   user: User | null;
   session: Session | null;
 }
 
-export const createContext = async (opts?: { req?: Request }): Promise<Context> => {
+export const createContext = async (opts?: { req?: any }): Promise<Context> => {
   // Extract session from request headers using Better Auth's simpler approach
   let user: User | null = null;
   let session: Session | null = null;
 
   if (opts?.req) {
     try {
+      // Handle both Express requests and Web API requests
+      let headers: Record<string, string> = {};
+      
+      if (opts.req.headers) {
+        // Express request
+        if (typeof opts.req.headers.entries === 'function') {
+          // Web API Request
+          headers = Object.fromEntries(opts.req.headers.entries());
+        } else {
+          // Express Request
+          headers = opts.req.headers;
+        }
+      }
+      
       // Use Better Auth's session validation
       const sessionData = await auth.api.getSession({
-        headers: Object.fromEntries(opts.req.headers.entries()),
+        headers,
       });
       
       if (sessionData?.session && sessionData?.user) {

@@ -7,6 +7,7 @@ import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:4000",
+  basePath: "/api/auth",
   trustedOrigins: [
     "http://localhost:3000",
     "http://localhost:4000",
@@ -85,7 +86,6 @@ export const auth = betterAuth({
 
   // Security configuration
   advanced: {
-    generateId: false, // Use database default UUID generation
     crossSubDomainCookies: {
       enabled: false, // Set to true for subdomains
     },

@@ -66,9 +66,11 @@ export function validateEnv(): Env {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ Environment validation failed:');
-      error.errors.forEach((err) => {
-        console.error(`  - ${err.path.join('.')}: ${err.message}`);
-      });
+      if (error.errors && Array.isArray(error.errors)) {
+        error.errors.forEach((err) => {
+          console.error(`  - ${err.path.join('.')}: ${err.message}`);
+        });
+      }
       console.error('\nPlease check your .env file and ensure all required variables are set.');
     } else {
       console.error('❌ Unexpected error during environment validation:', error);

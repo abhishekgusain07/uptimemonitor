@@ -8,9 +8,16 @@ import superjson from 'superjson';
 import { trpc } from '../lib/trpc';
 
 function getBaseUrl() {
-  if (typeof window !== 'undefined') return '';
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'http://localhost:3000';
+  if (typeof window !== 'undefined') {
+    // Client-side: use the public API URL
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  }
+  if (process.env.VERCEL_URL) {
+    // Server-side on Vercel: use production API URL
+    return process.env.API_URL || `https://api.${process.env.VERCEL_URL}`;
+  }
+  // Server-side local development: use backend API URL
+  return process.env.API_URL || 'http://localhost:4000';
 }
 
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
@@ -34,7 +41,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: `${getBaseUrl()}/api/trpc`,
+          url: `${getBaseUrl()}/trpc`,
           transformer: superjson,
           headers() {
             return {};

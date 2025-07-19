@@ -20,6 +20,14 @@ export const monitoringRouter = createTRPCRouter({
         lastChecked: new Date(),
         responseTime: null,
       },
+      {
+        id: '3',
+        name: 'API Endpoint',
+        url: 'https://towerly.abhishekgusain.com',
+        status: 'up' as const,
+        lastChecked: new Date(),
+        responseTime: null,
+      }
     ];
   }),
 
