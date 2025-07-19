@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "drizzle"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  }
+}
