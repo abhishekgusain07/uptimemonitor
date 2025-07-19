@@ -29,11 +29,11 @@ export default function Home() {
           </p>
           
           <div className="flex gap-4 justify-center animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
-              Start Monitoring
+            <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
+              <a href="/dashboard">Start Monitoring</a>
             </Button>
-            <Button className="border border-slate-300 text-slate-700 hover:bg-slate-50 px-8 py-3 text-lg transform hover:scale-105 transition-all duration-200 glass-effect">
-              View Demo
+            <Button asChild className="border border-slate-300 text-slate-700 hover:bg-slate-50 px-8 py-3 text-lg transform hover:scale-105 transition-all duration-200 glass-effect">
+              <a href="/dashboard">View tRPC Demo</a>
             </Button>
           </div>
 
@@ -160,8 +160,8 @@ export default function Home() {
               Join thousands of developers who trust Towerly to keep their websites running smoothly.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg font-semibold transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
-                Get Started Free
+              <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg font-semibold transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
+                <a href="/dashboard">Try tRPC Demo</a>
               </Button>
               <p className="text-slate-400 text-sm">No credit card required</p>
             </div>
