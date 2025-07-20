@@ -1,3 +1,4 @@
+// backend/src/lib/auth.ts - FIXED VERSION
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@uptime/database";
@@ -6,15 +7,19 @@ import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
+  
+  // IMPORTANT: This should match your backend URL
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:4000",
   basePath: "/api/auth",
+  
+  // Add all your frontend URLs
   trustedOrigins: [
     "http://localhost:3000",
     "http://localhost:4000",
-    // Add production domains here
-    // "https://yourdomain.com",
-    // "https://api.yourdomain.com"
-  ],
+    // Add production domains
+    process.env.NEXT_PUBLIC_APP_URL !,
+    process.env.FRONTEND_URL!,
+  ].filter(Boolean), // Remove undefined values
   
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -26,11 +31,10 @@ export const auth = betterAuth({
     },
   }),
   
-  // Email and password authentication
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
-    sendResetPassword: async ({ user, url }) => {
+    sendResetPassword: async ({ user, url }: { user: any; url: string }) => {
       try {
         await sendPasswordResetEmail({ user, url });
       } catch (error) {
@@ -38,13 +42,10 @@ export const auth = betterAuth({
         throw new Error("Failed to send password reset email");
       }
     },
-    sendVerificationEmail: async ({ user, url }:{
-      user:{
-        email: string;
-        name: string
-      },
-      url: string
-    }) => {
+  },
+  
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }: { user: any; url: string }) => {
       try {
         await sendVerificationEmail({ user, url });
       } catch (error) {
@@ -54,7 +55,6 @@ export const auth = betterAuth({
     },
   },
 
-  // Social providers
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",
@@ -68,7 +68,7 @@ export const auth = betterAuth({
     },
   },
 
-  // Session configuration
+  // FIXED: Session configuration for cross-origin setup
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day
@@ -76,81 +76,76 @@ export const auth = betterAuth({
       enabled: true,
       maxAge: 60 * 5, // 5 minutes
     },
-    cookieOptions: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-    },
   },
 
-  // Security configuration
+  // FIXED: Cookie configuration
   advanced: {
+    cookies: {
+      // For development with different ports
+      secure: {
+        attributes: {
+          secure: process.env.NODE_ENV === 'production',
+        },
+      },
+      httpOnly: {
+        attributes: {
+          httpOnly: true,
+        },
+      },
+      sameSite: {
+        attributes: {
+          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        },
+      },
+      path: {
+        attributes: {
+          path: '/',
+        },
+      },
+      // Don't set domain for localhost, but set for production
+      ...(process.env.NODE_ENV === 'production' && process.env.COOKIE_DOMAIN ? {
+        domain: {
+          attributes: {
+            domain: process.env.COOKIE_DOMAIN,
+          },
+        },
+      } : {}),
+    },
+    
+    // Enable CORS handling
+    crossOriginIsolated: false,
+    
+    // If you need cross-subdomain cookies in production
     crossSubDomainCookies: {
-      enabled: false, // Set to true for subdomains
+      enabled: process.env.NODE_ENV === 'production',
     },
   },
 
-  // Rate limiting
   rateLimit: {
-    window: 60, // 1 minute
-    max: 10, // 10 requests per minute for auth endpoints
-    storage: "memory", // Use memory storage for rate limiting
+    window: 60,
+    max: 10,
+    storage: "memory",
   },
 
-  // Additional user fields from our schema
   user: {
     additionalFields: {
       subPlan: {
         type: "string",
         required: false,
         defaultValue: "BASIC",
-        input: false, // Don't allow input from client
-        returned: true, // Return in user object
+        input: false,
+        returned: true,
       },
       verifiedEmailSent: {
         type: "date",
         required: false,
         input: false,
-        returned: false, // Don't expose to client
+        returned: false,
       },
     },
   },
-
-  // Plugins and middleware
-  plugins: [
-    // Add any Better Auth plugins here
-  ],
 });
 
-// Export types for type safety
+// Export properly typed auth object
 export type Session = typeof auth.$Infer.Session;
-export type User = typeof auth.$Infer.Session.user & {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  image?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  subPlan?: string | null;
-  verifiedEmailSent?: Date | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  company?: string | null;
-  jobTitle?: string | null;
-  phone?: string | null;
-  website?: string | null;
-  bio?: string | null;
-  location?: string | null;
-  timezone?: string | null;
-  twoFactorEnabled: boolean;
-  twoFactorSecret?: string | null;
-  backupCodes?: any;
-  lastLoginAt?: Date | null;
-  lastLoginIp?: string | null;
-  isActive: boolean;
-  isSuspended: boolean;
-  suspendedAt?: Date | null;
-  suspensionReason?: string | null;
-};
+export type User = typeof auth.$Infer.Session.user;

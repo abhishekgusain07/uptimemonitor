@@ -71,7 +71,7 @@ export const monitoringRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       try {
         const newMonitorResult = await db.insert(monitor).values({
-          userId: ctx.user.id,
+          userId: ctx.user?.id!,
           websiteName: input.name,
           url: input.url,
           method: input.method,
@@ -152,7 +152,7 @@ export const monitoringRouter = createTRPCRouter({
         const monitorExists = await db.query.monitor.findFirst({
           where: and(
             eq(monitor.id, input.monitorId),
-            eq(monitor.userId, ctx.user.id),
+            eq(monitor.userId, ctx.user!.id),
             eq(monitor.isDeleted, false)
           ),
         });
