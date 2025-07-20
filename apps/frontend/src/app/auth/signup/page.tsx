@@ -87,7 +87,9 @@ export default function SignUpPage() {
 
   const handleGoogleSignUp = async () => {
     try {
-      await signUp.social({ provider: "google" });
+      // Note: Better Auth social authentication works differently
+      // This would need to be implemented using the correct Better Auth pattern
+      setError("Social signup not implemented yet");
     } catch (err) {
       setError("Google sign up failed");
     }
@@ -95,7 +97,9 @@ export default function SignUpPage() {
 
   const handleGitHubSignUp = async () => {
     try {
-      await signUp.social({ provider: "github" });
+      // Note: Better Auth social authentication works differently
+      // This would need to be implemented using the correct Better Auth pattern
+      setError("Social signup not implemented yet");
     } catch (err) {
       setError("GitHub sign up failed");
     }

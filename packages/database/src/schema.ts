@@ -27,6 +27,27 @@ export const user = pgTable("user", {
   // Additional fields for uptime monitoring
   subPlan: text('sub_plan', { enum: ['BASIC', 'PREMIUM', 'ENTERPRISE'] }).default('BASIC'),
   verifiedEmailSent: timestamp('verified_email_sent'),
+  // Enhanced profile fields
+  firstName: text('first_name'),
+  lastName: text('last_name'),
+  company: text('company'),
+  jobTitle: text('job_title'),
+  phone: text('phone'),
+  website: text('website'),
+  bio: text('bio'),
+  location: text('location'),
+  timezone: text('timezone').default('UTC'),
+  // Security fields
+  twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
+  twoFactorSecret: text('two_factor_secret'), // Encrypted
+  backupCodes: json('backup_codes'), // Array of encrypted backup codes
+  lastLoginAt: timestamp('last_login_at'),
+  lastLoginIp: text('last_login_ip'),
+  // Account status
+  isActive: boolean('is_active').notNull().default(true),
+  isSuspended: boolean('is_suspended').notNull().default(false),
+  suspendedAt: timestamp('suspended_at'),
+  suspensionReason: text('suspension_reason'),
 });
 
 export const session = pgTable("session", {
@@ -173,13 +194,124 @@ export const slugTicket = pgTable("slug_ticket", {
 });
 
 // ========================================
+// SUBSCRIPTION & BILLING TABLES
+// ========================================
+
+export const subscription = pgTable("subscription", {
+  id: text("id").primaryKey().default('gen_random_uuid()'),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
+  plan: text("plan", { enum: ['BASIC', 'PREMIUM', 'ENTERPRISE'] }).notNull().default('BASIC'),
+  status: text("status", { enum: ['ACTIVE', 'CANCELLED', 'PAST_DUE', 'PAUSED'] }).notNull().default('ACTIVE'),
+  currentPeriodStart: timestamp("current_period_start").notNull().defaultNow(),
+  currentPeriodEnd: timestamp("current_period_end").notNull().defaultNow(),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  cancelledAt: timestamp("cancelled_at"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  metadata: json("metadata"), // For storing additional subscription data
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("subscription_user_id_idx").on(table.userId),
+  statusIdx: index("subscription_status_idx").on(table.status),
+  periodEndIdx: index("subscription_period_end_idx").on(table.currentPeriodEnd),
+}));
+
+export const planUsage = pgTable("plan_usage", {
+  id: text("id").primaryKey().default('gen_random_uuid()'),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
+  subscriptionId: text("subscription_id").references(() => subscription.id, { onDelete: 'cascade' }),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  monitorsUsed: integer("monitors_used").notNull().default(0),
+  alertRecipientsUsed: integer("alert_recipients_used").notNull().default(0),
+  apiCallsUsed: integer("api_calls_used").notNull().default(0),
+  checksPerformed: integer("checks_performed").notNull().default(0),
+  dataRetentionDays: integer("data_retention_days").notNull().default(30),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userPeriodIdx: index("plan_usage_user_period_idx").on(table.userId, table.periodStart, table.periodEnd),
+  periodStartIdx: index("plan_usage_period_start_idx").on(table.periodStart),
+}));
+
+export const billingHistory = pgTable("billing_history", {
+  id: text("id").primaryKey().default('gen_random_uuid()'),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
+  subscriptionId: text("subscription_id").references(() => subscription.id, { onDelete: 'set null' }),
+  amount: integer("amount").notNull(), // Amount in cents
+  currency: text("currency").notNull().default('USD'),
+  status: text("status", { enum: ['PENDING', 'PAID', 'FAILED', 'REFUNDED'] }).notNull(),
+  description: text("description").notNull(),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  paidAt: timestamp("paid_at"),
+  failedAt: timestamp("failed_at"),
+  refundedAt: timestamp("refunded_at"),
+  paymentMethod: text("payment_method"), // 'card', 'paypal', etc.
+  transactionId: text("transaction_id"), // External payment processor ID
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("billing_history_user_id_idx").on(table.userId),
+  statusIdx: index("billing_history_status_idx").on(table.status),
+  createdAtIdx: index("billing_history_created_at_idx").on(table.createdAt),
+}));
+
+export const userPreferences = pgTable("user_preferences", {
+  id: text("id").primaryKey().default('gen_random_uuid()'),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }).unique(),
+  emailNotifications: boolean("email_notifications").notNull().default(true),
+  pushNotifications: boolean("push_notifications").notNull().default(false),
+  smsNotifications: boolean("sms_notifications").notNull().default(false),
+  weeklyReport: boolean("weekly_report").notNull().default(true),
+  maintenanceAlerts: boolean("maintenance_alerts").notNull().default(true),
+  timezone: text("timezone").notNull().default('UTC'),
+  dateFormat: text("date_format").notNull().default('MM/DD/YYYY'),
+  timeFormat: text("time_format", { enum: ['12h', '24h'] }).notNull().default('12h'),
+  language: text("language").notNull().default('en'),
+  theme: text("theme", { enum: ['light', 'dark', 'system'] }).notNull().default('system'),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Profile change audit log
+export const profileAuditLog = pgTable("profile_audit_log", {
+  id: text("id").primaryKey().default('gen_random_uuid()'),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
+  action: text("action").notNull(), // 'profile_update', 'email_change', 'password_change', etc.
+  fieldChanged: text("field_changed"), // Specific field that was changed
+  oldValue: text("old_value"), // Previous value (encrypted for sensitive data)
+  newValue: text("new_value"), // New value (encrypted for sensitive data)
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  sessionId: text("session_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  userActionIdx: index("profile_audit_log_user_action_idx").on(table.userId, table.action),
+  createdAtIdx: index("profile_audit_log_created_at_idx").on(table.createdAt),
+}));
+
+// ========================================
 // RELATIONS
 // ========================================
 
-export const userRelations = relations(user, ({ many }) => ({
+export const userRelations = relations(user, ({ one, many }) => ({
   sessions: many(session),
   accounts: many(account),
   monitors: many(monitor),
+  subscription: one(subscription, {
+    fields: [user.id],
+    references: [subscription.userId],
+  }),
+  preferences: one(userPreferences, {
+    fields: [user.id],
+    references: [userPreferences.userId],
+  }),
+  planUsage: many(planUsage),
+  billingHistory: many(billingHistory),
+  auditLogs: many(profileAuditLog),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -235,6 +367,51 @@ export const monitorAlertRecipientRelations = relations(monitorAlertRecipient, (
   }),
 }));
 
+export const subscriptionRelations = relations(subscription, ({ one, many }) => ({
+  user: one(user, {
+    fields: [subscription.userId],
+    references: [user.id],
+  }),
+  planUsage: many(planUsage),
+  billingHistory: many(billingHistory),
+}));
+
+export const planUsageRelations = relations(planUsage, ({ one }) => ({
+  user: one(user, {
+    fields: [planUsage.userId],
+    references: [user.id],
+  }),
+  subscription: one(subscription, {
+    fields: [planUsage.subscriptionId],
+    references: [subscription.id],
+  }),
+}));
+
+export const billingHistoryRelations = relations(billingHistory, ({ one }) => ({
+  user: one(user, {
+    fields: [billingHistory.userId],
+    references: [user.id],
+  }),
+  subscription: one(subscription, {
+    fields: [billingHistory.subscriptionId],
+    references: [subscription.id],
+  }),
+}));
+
+export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
+  user: one(user, {
+    fields: [userPreferences.userId],
+    references: [user.id],
+  }),
+}));
+
+export const profileAuditLogRelations = relations(profileAuditLog, ({ one }) => ({
+  user: one(user, {
+    fields: [profileAuditLog.userId],
+    references: [user.id],
+  }),
+}));
+
 // ========================================
 // TYPES
 // ========================================
@@ -269,6 +446,21 @@ export type NewMonitorAlertRecipient = typeof monitorAlertRecipient.$inferInsert
 export type SlugTicket = typeof slugTicket.$inferSelect;
 export type NewSlugTicket = typeof slugTicket.$inferInsert;
 
+export type Subscription = typeof subscription.$inferSelect;
+export type NewSubscription = typeof subscription.$inferInsert;
+
+export type PlanUsage = typeof planUsage.$inferSelect;
+export type NewPlanUsage = typeof planUsage.$inferInsert;
+
+export type BillingHistory = typeof billingHistory.$inferSelect;
+export type NewBillingHistory = typeof billingHistory.$inferInsert;
+
+export type UserPreferences = typeof userPreferences.$inferSelect;
+export type NewUserPreferences = typeof userPreferences.$inferInsert;
+
+export type ProfileAuditLog = typeof profileAuditLog.$inferSelect;
+export type NewProfileAuditLog = typeof profileAuditLog.$inferInsert;
+
 // Subscription Plan Enum
 export const SubscriptionPlan = {
   BASIC: 'BASIC',
@@ -295,3 +487,40 @@ export const IncidentStatus = {
 } as const;
 
 export type IncidentStatus = typeof IncidentStatus[keyof typeof IncidentStatus];
+
+// Subscription Status Enum
+export const SubscriptionStatus = {
+  ACTIVE: 'ACTIVE',
+  CANCELLED: 'CANCELLED',
+  PAST_DUE: 'PAST_DUE',
+  PAUSED: 'PAUSED',
+} as const;
+
+export type SubscriptionStatus = typeof SubscriptionStatus[keyof typeof SubscriptionStatus];
+
+// Billing Status Enum
+export const BillingStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED',
+} as const;
+
+export type BillingStatus = typeof BillingStatus[keyof typeof BillingStatus];
+
+// Time Format Enum
+export const TimeFormat = {
+  TWELVE_HOUR: '12h',
+  TWENTY_FOUR_HOUR: '24h',
+} as const;
+
+export type TimeFormat = typeof TimeFormat[keyof typeof TimeFormat];
+
+// Theme Enum
+export const Theme = {
+  LIGHT: 'light',
+  DARK: 'dark',
+  SYSTEM: 'system',
+} as const;
+
+export type Theme = typeof Theme[keyof typeof Theme];

@@ -66,8 +66,8 @@ export function validateEnv(): Env {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ Environment validation failed:');
-      if (error.errors && Array.isArray(error.errors)) {
-        error.errors.forEach((err) => {
+      if (error.issues && Array.isArray(error.issues)) {
+        error.issues.forEach((err: any) => {
           console.error(`  - ${err.path.join('.')}: ${err.message}`);
         });
       }

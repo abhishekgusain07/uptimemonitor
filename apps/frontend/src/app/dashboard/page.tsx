@@ -4,21 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc';
 
-type Monitor = {
-  id: string;
-  name: string;
-  url: string;
-  status: 'up' | 'down' | 'pending';
-  lastChecked?: Date;
-  responseTime?: number | null;
-};
-
-type User = {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: Date;
-};
+// Types are now inferred from tRPC router
 
 export default function Dashboard() {
   const [newMonitorName, setNewMonitorName] = useState('');
@@ -127,7 +113,7 @@ export default function Dashboard() {
 
             {/* Monitors List */}
             <div className="space-y-3">
-              {monitors?.map((monitor: Monitor) => (
+              {monitors?.map((monitor) => (
                 <div key={monitor.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -136,15 +122,28 @@ export default function Dashboard() {
                       <div className="flex items-center mt-2">
                         <div
                           className={`w-2 h-2 rounded-full mr-2 ${
-                            monitor.status === 'up' ? 'bg-green-500' : 'bg-red-500'
+                            monitor.status === 'up' 
+                              ? 'bg-green-500' 
+                              : monitor.status === 'paused' 
+                              ? 'bg-yellow-500' 
+                              : 'bg-red-500'
                           }`}
                         ></div>
                         <span
                           className={`text-sm font-medium ${
-                            monitor.status === 'up' ? 'text-green-600' : 'text-red-600'
+                            monitor.status === 'up' 
+                              ? 'text-green-600' 
+                              : monitor.status === 'paused' 
+                              ? 'text-yellow-600' 
+                              : 'text-red-600'
                           }`}
                         >
-                          {monitor.status === 'up' ? 'Online' : 'Offline'}
+                          {monitor.status === 'up' 
+                            ? 'Online' 
+                            : monitor.status === 'paused' 
+                            ? 'Paused' 
+                            : 'Offline'
+                          }
                         </span>
                         {monitor.responseTime && (
                           <span className="text-sm text-gray-500 ml-2">
@@ -183,7 +182,7 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-3">
-              {users?.map((user: User) => (
+              {users?.map((user) => (
                 <div key={user.id} className="border border-gray-200 rounded-lg p-4">
                   <h3 className="font-medium text-gray-900">{user.name}</h3>
                   <p className="text-sm text-gray-600">{user.email}</p>

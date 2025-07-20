@@ -125,4 +125,32 @@ export const auth = betterAuth({
 
 // Export types for type safety
 export type Session = typeof auth.$Infer.Session;
-export type User = typeof auth.$Infer.Session.user;
+export type User = typeof auth.$Infer.Session.user & {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  image?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  subPlan?: string | null;
+  verifiedEmailSent?: Date | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  jobTitle?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  timezone?: string | null;
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string | null;
+  backupCodes?: any;
+  lastLoginAt?: Date | null;
+  lastLoginIp?: string | null;
+  isActive: boolean;
+  isSuspended: boolean;
+  suspendedAt?: Date | null;
+  suspensionReason?: string | null;
+};
